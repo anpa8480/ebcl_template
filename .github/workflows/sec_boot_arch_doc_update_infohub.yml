@@ -35,7 +35,7 @@ jobs:
         id: content
         run: |
           echo "content<<EOF" >> $GITHUB_OUTPUT
-          jq -Rs . < output.html >> $GITHUB_OUTPUT
+          cat output.html | jq -Rs . >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       # ✅ Get current page version
