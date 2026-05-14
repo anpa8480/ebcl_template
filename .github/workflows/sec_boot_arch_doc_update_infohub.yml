@@ -1,6 +1,7 @@
 name: Update InfoHub Page
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc"
