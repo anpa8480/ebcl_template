@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: security
 
       # ✅ Install tools
       - name: Install dependencies
@@ -28,24 +30,12 @@ jobs:
             -o output.html \
             images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc
 
-      # ✅ Extract BODY only
-      - name: Extract body
-        run: |
-          sed -n '/<body>/,/<\/body>/p' output.html | \
-          sed '1d;$d' > body.html
-
-      # ✅ Clean HTML (basic)
-      - name: Clean HTML
-        run: |
-          sed -i '/<meta/d' body.html
-          sed -i '/<link/d' body.html
-          sed -i '/<script/d' body.html
-
+      
       # ✅ Escape content for JSON
       - name: Prepare content
         id: content
         run: |
-          CONTENT=$(cat body.html | sed 's/"/\\"/g' | tr -d '\n')
+          CONTENT=$(jq -Rs . < output.html)
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
 
       # ✅ Get current page version
@@ -62,8 +52,8 @@ jobs:
       # ✅ Debug
       - name: Debug output
         run: |
-          echo "===== BODY CONTENT ====="
-          cat body.html
+          echo "===== OUTPUT HTML ====="
+          head -n 50 output.html
 
       # ✅ Update page
       - name: Update Confluence page
@@ -80,7 +70,7 @@ jobs:
               \"version\": {\"number\": $NEW_VERSION},
               \"body\": {
                 \"storage\": {
-                  \"value\": \"${{ steps.content.outputs.content }}\",
+                  \"value\": ${{ steps.content.outputs.content }},
                   \"representation\": \"storage\"
                 }
               }
