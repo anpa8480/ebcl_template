@@ -34,8 +34,9 @@ jobs:
       - name: Prepare content
         id: content
         run: |
-          CONTENT=$(jq -Rs . < output.html)
-          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          jq -Rs . < output.html >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       # ✅ Get current page version
       - name: Get current version
