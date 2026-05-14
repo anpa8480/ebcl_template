@@ -46,15 +46,15 @@ jobs:
 
         # Extract body content
         run: |
-          awk 'BEGIN{flag=0} /<body/{flag=1; next} /<\/body>/{flag=0} flag' output.html > body.html
-      
-          # Remove problematic tags Confluence strips
+          sed -n '/<body/,/<\/body>/p' output.html > body.html
+          # Remove first and last lines (<body> and </body>)
+          sed -i '1d;$d' body.html
+          # Remove problematic tags
           sed -i 's/<div[^>]*>//g' body.html
           sed -i 's/<\/div>//g' body.html
           sed -i '/<meta/d' body.html
           sed -i '/<link/d' body.html
           sed -i '/<style/,/<\/style>/d' body.html
-      
           # Convert to JSON-safe string
           CONTENT=$(jq -Rs '.' body.html)
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
