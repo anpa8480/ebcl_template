@@ -43,13 +43,20 @@ jobs:
         #run: |
           #CONTENT=$(jq -Rs '.' output.html)
           #echo "content=$CONTENT" >> $GITHUB_OUTPUT
-        
+
+        # Extract body content
         run: |
-          CONTENT=$(jq -Rs '.' <<EOF
-          <h1>TEST SUCCESS</h1>
-          <p>If you see this, Confluence is working.</p>
-          EOF
-          )
+          awk 'BEGIN{flag=0} /<body/{flag=1; next} /<\/body>/{flag=0} flag' output.html > body.html
+      
+          # Remove problematic tags Confluence strips
+          sed -i 's/<div[^>]*>//g' body.html
+          sed -i 's/<\/div>//g' body.html
+          sed -i '/<meta/d' body.html
+          sed -i '/<link/d' body.html
+          sed -i '/<style/,/<\/style>/d' body.html
+      
+          # Convert to JSON-safe string
+          CONTENT=$(jq -Rs '.' body.html)
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
 
       # ✅ Get current page version
