@@ -58,6 +58,12 @@ jobs:
 
           VERSION=$(echo "$RESPONSE" | jq '.version.number')
           echo "current=$VERSION" >> $GITHUB_OUTPUT
+      
+      # ✅ Debug
+      - name: Debug output
+        run: |
+          echo "===== BODY CONTENT ====="
+          cat body.html
 
       # ✅ Update page
       - name: Update Confluence page
