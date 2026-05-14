@@ -58,7 +58,7 @@ jobs:
       # ✅ Update page
       - name: Update Confluence page
         run: |
-          NEW_VERSION=$(( ${{ steps.version.outputs.current }} + 1 ))
+          NEW_VERSION=$(expr ${{ steps.version.outputs.current }} + 1)
 
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.CONFLUENCE_API_TOKEN }}" \
@@ -70,7 +70,7 @@ jobs:
               \"version\": {\"number\": $NEW_VERSION},
               \"body\": {
                 \"storage\": {
-                  \"value\": \"${{ steps.content.outputs.content }}\",
+                  \"value\": ${{ steps.content.outputs.content }},
                   \"representation\": \"storage\"
                 }
               }
