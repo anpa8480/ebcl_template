@@ -43,13 +43,13 @@ jobs:
           VERSION=$(echo "$RESPONSE" | jq '.version.number')
           echo "current=$VERSION" >> $GITHUB_OUTPUT
 
-      # ✅ Build final payload using safe jq injection arguments and trigger API
+           # ✅ Build final payload using safe jq injection arguments and trigger API
       - name: Update Confluence page
         run: |
           # Calculate the next version integer cleanly in Bash
           NEXT_VERSION=$(expr ${{ steps.version.outputs.current }} + 1)
           
-          # Use --argjson to inject the numeric version, and --arg for the html text string safely
+          # Removed the "space" block entirely to avoid space mutation errors
           jq -n \
             --arg html "$(cat fragment.html)" \
             --argjson v "$NEXT_VERSION" \
@@ -57,7 +57,6 @@ jobs:
               "id": "${{ secrets.CONFLUENCE_PAGE_ID }}",
               "type": "page",
               "title": "Secure Boot & Storage Architecture on EB Corbos Linux I.MX93 (FRDM)",
-              "space": {"key": "${{ secrets.CONFLUENCE_SPACE_KEY }}"},
               "body": {
                 "storage": {
                   "value": $html,
