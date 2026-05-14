@@ -30,7 +30,6 @@ jobs:
             -o output.html \
             images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc
 
-      
       # ✅ Escape content for JSON
       - name: Prepare content
         id: content
