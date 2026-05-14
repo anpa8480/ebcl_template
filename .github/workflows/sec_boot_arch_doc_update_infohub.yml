@@ -70,7 +70,7 @@ jobs:
               \"version\": {\"number\": $NEW_VERSION},
               \"body\": {
                 \"storage\": {
-                  \"value\": \"${{ steps.content.outputs.content }}\",
+                  \"value\": ${{ steps.content.outputs.content }},
                   \"representation\": \"storage\"
                 }
               }
