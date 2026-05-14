@@ -29,6 +29,13 @@ jobs:
             -b html5 \
             -o output.html \
             images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc
+      
+      - name: Upload HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-html
+          path: output.html
+
 
       # ✅ Escape content for JSON
       - name: Prepare content
