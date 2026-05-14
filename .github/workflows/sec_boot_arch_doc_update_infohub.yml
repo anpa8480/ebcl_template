@@ -58,20 +58,25 @@ jobs:
       - name: Update Confluence page
         run: |
           NEW_VERSION=$(expr ${{ steps.version.outputs.current }} + 1)
-
+      
+          # Create JSON payload safely
+          cat > payload.json <<EOF
+          {
+            "id": "${{ secrets.CONFLUENCE_PAGE_ID }}",
+            "type": "page",
+            "title": "Secure Boot Architecture",
+            "version": { "number": $NEW_VERSION },
+            "body": {
+              "storage": {
+                "value": ${{ steps.content.outputs.content }},
+                "representation": "storage"
+              }
+            }
+          }
+          EOF
+          # Call API using file
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.CONFLUENCE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"id\": \"${{ secrets.CONFLUENCE_PAGE_ID }}\",
-              \"type\": \"page\",
-              \"title\": \"Secure Boot Architecture\",
-              \"version\": {\"number\": $NEW_VERSION},
-              \"body\": {
-                \"storage\": {
-                  \"value\": ${{ steps.content.outputs.content }},
-                  \"representation\": \"storage\"
-                }
-              }
-            }" \
+            --data @payload.json \
             "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content/${{ secrets.CONFLUENCE_PAGE_ID }}"
