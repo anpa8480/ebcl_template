@@ -20,46 +20,19 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y asciidoctor jq
+          sudo apt-get install -y asciidoctor jq pandoc
 
-      # ✅ Convert AsciiDoc → HTML
+      # ✅ Convert AsciiDoc → DocBook XML
       - name: Convert AsciiDoc
         run: |
-          asciidoctor \
-            -b html5 \
-            -o output.html \
-            images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc
-      
-      - name: Upload HTML artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: output-html
-          path: output.html
-
-
-      # ✅ Escape content for JSON
-      - name: Prepare content
-        id: content
-        #run: |
-          #CONTENT=$(jq -Rs '.' output.html)
-          #echo "content=$CONTENT" >> $GITHUB_OUTPUT
-
-        # Extract body content
+          asciidoctor -b docbook -s -a showtitle images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc -o fragment.xml
+          
+      # ✅ Extract compliant HTML body content using Pandoc
+      - name: Prepare HTML fragment
         run: |
-          sed -n '/<body/,/<\/body>/p' output.html > body.html
-          # Remove first and last lines (<body> and </body>)
-          sed -i '1d;$d' body.html
-          # Remove problematic tags
-          sed -i 's/<div[^>]*>//g' body.html
-          sed -i 's/<\/div>//g' body.html
-          sed -i '/<meta/d' body.html
-          sed -i '/<link/d' body.html
-          sed -i '/<style/,/<\/style>/d' body.html
-          # Convert to JSON-safe string
-          CONTENT=$(jq -Rs '.' body.html)
-          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+          pandoc -f docbook -t html fragment.xml -o fragment.html
 
-      # ✅ Get current page version
+      # ✅ Get current page version from Confluence API
       - name: Get current version
         id: version
         run: |
@@ -70,35 +43,35 @@ jobs:
           VERSION=$(echo "$RESPONSE" | jq '.version.number')
           echo "current=$VERSION" >> $GITHUB_OUTPUT
 
-      # ✅ Debug
-      - name: Debug output
-        run: |
-          echo "===== OUTPUT HTML ====="
-          head -n 50 output.html
-
-      # ✅ Update page
+      # ✅ Build final payload using safe jq injection arguments and trigger API
       - name: Update Confluence page
         run: |
-          NEW_VERSION=$(expr ${{ steps.version.outputs.current }} + 1)
-      
-          # Create JSON payload safely
-          cat > payload.json <<EOF
-          {
-            "id": "${{ secrets.CONFLUENCE_PAGE_ID }}",
-            "type": "page",
-            "title": "Secure Boot Architecture",
-            "version": { "number": $NEW_VERSION },
-            "body": {
-              "storage": {
-                "value": ${{ steps.content.outputs.content }},
-                "representation": "storage"
+          # Calculate the next version integer cleanly in Bash
+          NEXT_VERSION=$(expr ${{ steps.version.outputs.current }} + 1)
+          
+          # Use --argjson to inject the numeric version, and --arg for the html text string safely
+          jq -n \
+            --arg html "$(cat fragment.html)" \
+            --argjson v "$NEXT_VERSION" \
+            '{
+              "id": "${{ secrets.CONFLUENCE_PAGE_ID }}",
+              "type": "page",
+              "title": "Secure Boot & Storage Architecture on EB Corbos Linux I.MX93 (FRDM)",
+              "space": {"key": "${{ secrets.CONFLUENCE_SPACE_KEY }}"},
+              "body": {
+                "storage": {
+                  "value": $html,
+                  "representation": "storage"
+                }
+              },
+              "version": {
+                "number": $v
               }
-            }
-          }
-          EOF
-          # Call API using file
+            }' > final_payload.json
+
+          # Send update to endpoint via PUT file mapping
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.CONFLUENCE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data @payload.json \
-            "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content/${{ secrets.CONFLUENCE_PAGE_ID }}"
+            -d @final_payload.json \
+            "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content/${{ secrets.CONFLUENCE_PAGE_ID }}?expand=version"
