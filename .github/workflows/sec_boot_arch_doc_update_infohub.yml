@@ -40,8 +40,16 @@ jobs:
       # ✅ Escape content for JSON
       - name: Prepare content
         id: content
+        #run: |
+          #CONTENT=$(jq -Rs '.' output.html)
+          #echo "content=$CONTENT" >> $GITHUB_OUTPUT
+        
         run: |
-          CONTENT=$(jq -Rs '.' output.html)
+          CONTENT=$(jq -Rs '.' <<EOF
+          <h1>TEST SUCCESS</h1>
+          <p>If you see this, Confluence is working.</p>
+          EOF
+          )
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
 
       # ✅ Get current page version
