@@ -35,41 +35,57 @@ The following diagram illustrates the verified boot sequence and the now-authent
 [plantuml, Chain_of_Trust, png]
 ----
 @startuml
-skinparam backgroundColor #ffffff
+skinparam backgroundColor white
 skinparam shadowing false
-skinparam ArrowColor #333333
+skinparam ArrowColor black
 skinparam defaultTextAlignment center
-skinparam RectangleFontSize 12
-skinparam PackageFontSize 12
 
-rectangle "Silicon ROM (AHAB)" as ROM #1f77b4 <<hardware>>
-rectangle "Signed Container: flash.bin\n(SPL/U-Boot, TF-A bl31, OP-TEE)" as CONT #2ca02c
-rectangle "U-Boot\n(verifies FIT signatures)" as UBOOT #9467bd
+rectangle "BL1: Silicon ROM AHAB Root of Trust" as BL1
+rectangle "flash.bin\n(BL2 + BL31 + BL32 + U-Boot)" as FLASH
 
-package "FIT image" #17becf {
-  rectangle "Linux kernel" as KERN #ff7f0e
-  rectangle "Device Tree (DTB)" as DTB #ff7f0e
-  rectangle "Initrd (patched)" as INITRD #ff7f0e
-  rectangle "Boot script (bootscr)" as BOOTSCR #ff7f0e
+rectangle "BL2: SPL U-Boot SPL" as BL2
+rectangle "BL31: TF-A EL3 runtime" as BL31
+rectangle "BL32: OP-TEE secure world" as BL32
+rectangle "BL33: U-Boot FIT verification" as BL33
+
+package "FIT image" {
+  rectangle "Kernel" as KERN
+  rectangle "DTB" as DTB
+  rectangle "Initrd" as INITRD
+  rectangle "Boot script" as BOOTSCR
 }
 
-rectangle "OP-TEE (secure world)\nKEK → AES-GCM unwrap" as OPTEE #8c564b
-rectangle "dm-verity RootFS\n(Merkle-verified RO)" as VERITY #7f7f7f
+rectangle "dm-verity rootfs\n(read-only, verified)" as VERITY
+rectangle "dm-integrity\n(HMAC-SHA256)" as INTEG
+rectangle "dm-crypt\n(AES-XTS encryption)" as DMCRYPT
+rectangle "overlayfs (runtime root)" as OVERLAY
 
-rectangle "dm-integrity\nHMAC-SHA256 integrity tags" as INTEG #f6c542
-rectangle "dm-crypt (AES-XTS)\nEncrypted /data" as DMCRYPT #bcbd22
+BL1 --> FLASH : verify (AHAB)
+FLASH --> BL2
+BL2 --> BL31
+BL31 --> BL32
+BL31 --> BL33 : load
 
-ROM --> CONT : AHAB verify
-CONT --> UBOOT : load
-UBOOT --> KERN
-UBOOT --> DTB
-UBOOT --> INITRD
-UBOOT --> BOOTSCR
+BL33 --> BOOTSCR : verify + execute
+BL33 --> KERN : verify via FIT + boot
+BL33 --> DTB : verify via FIT
+BL33 --> INITRD : verify via FIT
 
-INITRD --> VERITY : mount RO
-INITRD --> OPTEE : unwrap keys
-OPTEE --> INTEG : provide integrity key
-INTEG --> DMCRYPT : stacked mapper
+BOOTSCR --> KERN : pass cmdline (verity params)
+DTB --> KERN : hardware description
+INITRD --> KERN : early userspace
+
+INITRD --> BL32 : unwrap keys
+BL32 --> INTEG
+BL32 --> DMCRYPT
+
+INITRD --> VERITY : create mapping
+INITRD --> INTEG
+INTEG --> DMCRYPT : underlying device
+
+VERITY --> OVERLAY : lower (RO)
+DMCRYPT --> OVERLAY : upper (RW secure)
+
 @enduml
 ----
 
