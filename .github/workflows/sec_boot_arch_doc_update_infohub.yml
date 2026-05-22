@@ -55,10 +55,6 @@ jobs:
             print
           }
           ' fragment_tmp.html > fragment.html
-          sed -i 's/&amp;quot;/"/g' fragment.html
-          sed -i 's/&amp;gt;/>/g' fragment.html
-          sed -i 's/&amp;lt;/</g' fragment.html
-
 
       # ✅ Get current page version from Confluence API
       - name: Get current version
