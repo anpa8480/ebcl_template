@@ -45,6 +45,7 @@ jobs:
           inuml {
             # Fix pandoc-escaped quotes inside the PlantUML body diagram
             gsub(/&quot;/, "\"", $0)
+            gsub(/&gt;/, ">", $0)
             print
           }
           /@enduml/ {
