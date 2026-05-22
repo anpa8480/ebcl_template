@@ -25,12 +25,36 @@ jobs:
       # ✅ Convert AsciiDoc → DocBook XML
       - name: Convert AsciiDoc
         run: |
-          asciidoctor -b docbook -s -a showtitle images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc -o fragment.xml
+          asciidoctor -b docbook -s -a showtitle images/arm64/nxp/frdm_imx93/Secure_Boot_Architecture_EmbeddedPUML.adoc -o fragment_tmp.xml
           
       # ✅ Extract compliant HTML body content using Pandoc
       - name: Prepare HTML fragment
         run: |
-          pandoc -f docbook -t html fragment.xml -o fragment.html
+          pandoc -f docbook -t html fragment_tmp.xml -o fragment_tmp.html
+
+      # ✅ convert plantuml blocks to macro
+      - name: Convert PlantUML blocks to Confluence macro
+        run: |
+          awk '
+          BEGIN { inuml=0 }
+          /@startuml/ {
+            print "<ac:structured-macro ac:name=\"plantuml\">"
+            print "<ac:plain-text-body><![CDATA["
+            inuml=1
+          }
+          inuml {
+            print
+          }
+          /@enduml/ {
+            print "]]></ac:plain-text-body>"
+            print "</ac:structured-macro>"
+            inuml=0
+            next
+          }
+          !inuml {
+            print
+          }
+          ' fragment_tmp.html > fragment.html
 
       # ✅ Get current page version from Confluence API
       - name: Get current version
