@@ -227,7 +227,7 @@ This appendix clarifies what protections are achieved by combining:
 It answers the practical security question:  
 “What exactly are we protected against now?”
 
-=== 1. dm-verity: Immutable Verified RootFS
+=== dm-verity: Immutable Verified RootFS
 The root filesystem (mounted at `/lower`) is protected by a Merkle tree and a
 signed root hash found in the FIT image.
 
@@ -245,7 +245,7 @@ signed root hash found in the FIT image.
 * Runtime memory attacks  
 * Tampering with writable data under `/data`
 
-=== 2. dm-crypt (AES-XTS): Confidentiality of User Data
+=== dm-crypt (AES-XTS): Confidentiality of User Data
 The `/data` partition is encrypted using AES-XTS with a 512-bit key unwrapped
 from OP-TEE.
 
@@ -262,7 +262,7 @@ from OP-TEE.
 
 This is why dm-integrity is required.
 
-=== 3. dm-integrity (HMAC-SHA256): Authenticated Integrity
+=== dm-integrity (HMAC-SHA256): Authenticated Integrity
 dm-integrity stores **per-sector HMAC tags** alongside encrypted data and enforces
 atomic updates via its journal.
 
@@ -282,7 +282,7 @@ atomic updates via its journal.
 This ensures **authenticated encryption at rest**:  
 Encryption (dm-crypt) + Integrity (dm-integrity).
 
-=== 4. OP-TEE KEK: Hardware-Bound Key Protection
+=== OP-TEE KEK: Hardware-Bound Key Protection
 OP-TEE unwraps two keys:
 
 * **XTS key** (64 bytes), used only for encryption  
@@ -302,7 +302,7 @@ These keys are:
 * Manipulated wrapped-key blobs  
 * Rollback of key blobs (RPMB counters break integrity)  
 
-=== 5. Combined Security Properties
+=== Combined Security Properties
 
 [cols="25,25,25,25",options="header"]
 |===
@@ -333,7 +333,7 @@ data, and **Verified Boot** for all executable code.
 
 ---
 
-== Appendix F – FIT Image Structure & Security
+== Appendix C – FIT Image Structure & Security
 
 This appendix describes the role of the FIT image (`fit.its`) in the platform's
 chain of trust. The FIT (Flattened Image Tree) bundles all boot‑critical
@@ -363,7 +363,7 @@ The syntax in this appendix corresponds to the snippet:
 };
 ----
 
-=== 1. Role of the FIT Image in the Chain of Trust
+=== Role of the FIT Image in the Chain of Trust
 
 The FIT image is the **handover point** from AHAB-verified U‑Boot to Linux.
 It ensures that *every component U‑Boot loads* is:
@@ -384,7 +384,7 @@ This guarantees:
 Together with AHAB secure boot, the FIT image establishes **end‑to‑end verified
 boot** from silicon to Linux userspace.
 
-=== 2. Images Section (kernel, DTB, bootscr, initrd)
+=== Images Section (kernel, DTB, bootscr, initrd)
 
 Each FIT "image" node contains:
 
@@ -421,7 +421,7 @@ This ensures:
 * The signature binds the kernel to the build process.
 * Any modification — even a single byte — causes boot rejection.
 
-=== 3. Signed Device Tree Blob (FDT)
+=== Signed Device Tree Blob (FDT)
 
 The DTB controls:
 
@@ -440,7 +440,7 @@ Because the DTB affects *security boundaries*, signing it ensures that:
 
 The DTB signature ties the platform configuration into the verified‑boot chain.
 
-=== 4. Signed Boot Script (bootscr)
+=== Signed Boot Script (bootscr)
 
 `bootscr` is the **bridge** between U‑Boot and the kernel:
 
@@ -464,7 +464,7 @@ If bootscr was not signed:
 
 Signing bootscr closes this hole.
 
-=== 5. Signed Initrd (initrd-patched.img)
+=== Signed Initrd (initrd-patched.img)
 
 The initrd contains:
 
@@ -487,7 +487,7 @@ Signing the initrd prevents:
 
 The Linux kernel **refuses to boot** an unsigned or modified initrd.
 
-=== 6. Configurations Section
+=== Configurations Section
 
 [source,dts]
 ----
@@ -513,7 +513,7 @@ It prevents:
 
 The entire configuration block becomes part of the signed object graph.
 
-=== 7. Security Guarantees Provided by the FIT Image
+=== Security Guarantees Provided by the FIT Image
 
 The FIT image enforces:
 
@@ -542,7 +542,7 @@ The device refuses to boot unless:
 
 This makes the FIT image the **central enforcement point** for Verified Boot on i.MX93.
 
-=== 8. Summary
+=== Summary
 
 The FIT image:
 
@@ -556,7 +556,7 @@ The FIT image:
 Together with AHAB, dm‑verity, dm‑integrity, and dm‑crypt, the FIT image
 is a critical foundation for a tamper‑resistant embedded system.
 
-== Appendix G – FIT Signing, Key Injection, and mkimage Workflow
+== Appendix D – FIT Signing, Key Injection, and mkimage Workflow
 
 This appendix explains how the platform generates a cryptographically signed FIT
 image and how the RSA public key is injected into U‑Boot’s device tree (DTB).
@@ -566,7 +566,7 @@ Linux.
 All steps described below correspond directly to the U‑Boot build automation in
 `frdm_imx93_build.sh`.
 
-=== 1. Overview: Why FIT Signing Matters
+=== Overview: Why FIT Signing Matters
 
 The FIT image bundles:
 
@@ -591,7 +591,7 @@ This seals the complete chain of trust:
 
 `AHAB → U‑Boot → FIT image → kernel → initrd → dm-verity → overlayfs`.
 
-=== 2. Creating the Boot Script (boot.scr)
+=== Creating the Boot Script (boot.scr)
 
 The script `boot.cmd` contains:
 
@@ -612,7 +612,7 @@ mkimage \
 
 This script is later inserted as a signed subimage inside the FIT.
 
-=== 3. Enabling FIT, RSA, and Signature Checking in U-Boot
+=== Enabling FIT, RSA, and Signature Checking in U-Boot
 
 The build system enables:
 
@@ -636,7 +636,7 @@ These options enforce:
 
 This ensures U‑Boot only executes authenticated boot content.
 
-=== 4. Generating a Signed FIT (mkimage -f)
+=== Generating a Signed FIT (mkimage -f)
 
 The FIT descriptor (`frdm_imx93_fit.its`) defines:
 
@@ -673,7 +673,7 @@ signature-1 {
 
 matching the key in `keysA/ubootkey.crt`.
 
-=== 5. Injecting the Public Key into U‑Boot DTB (the -K flag)
+=== Injecting the Public Key into U‑Boot DTB (the -K flag)
 
 The line:
 
@@ -703,7 +703,7 @@ algo = "sha256,rsa2048";
 This key is immutable once the final U‑Boot binary is produced, and is baked
 into the AHAB-signed `flash.bin`.
 
-=== 6. U‑Boot Signature Verification Flow
+=== U‑Boot Signature Verification Flow
 
 At boot, U‑Boot executes the following steps:
 
@@ -720,7 +720,7 @@ At boot, U‑Boot executes the following steps:
 
 Only fully signed FITs with the correct key can pass verification.
 
-=== 7. Secure Boot (AHAB) Integration
+=== Secure Boot (AHAB) Integration
 
 The `flash.bin` container built by *imx-mkimage* includes:
 
@@ -740,7 +740,7 @@ The secure boot contract becomes:
 
 `AHAB verifies U‑Boot → U‑Boot verifies FIT → FIT verifies kernel/DTB/initrd → initrd verifies dm-verity → dm-integrity protects /data`
 
-=== 8. Negative Test Case (Key Mismatch)
+=== Negative Test Case (Key Mismatch)
 
 The build script includes an optional negative test:
 
@@ -758,7 +758,7 @@ U‑Boot DTB contains keyA. Result:
 
 This validates the correctness of signature enforcement.
 
-=== 9. Summary of the Signing Flow
+=== Summary of the Signing Flow
 
 These are the exact cryptographic anchors of the system:
 
@@ -771,7 +771,7 @@ These are the exact cryptographic anchors of the system:
 
 This forms the foundation of Verified Boot on the EBCL i.MX93 platform.
 
-== Appendix H – initrd Root Pivot and `newroot`
+== Appendix E – initrd Root Pivot and `newroot`
 
 This appendix explains the role of `newroot` during the transition from the
 signed initrd environment to the final Linux runtime filesystem.
@@ -779,7 +779,7 @@ signed initrd environment to the final Linux runtime filesystem.
 Although `newroot` is not a security control by itself, it is a critical
 architectural boundary in the verified boot flow.
 
-=== 1. What is `newroot`?
+=== What is `newroot`?
 
 `newroot` is a temporary mount point used in initrd to assemble the **final
 runtime root filesystem** before handing control to Linux userspace.
@@ -804,7 +804,7 @@ At this point:
 * PID 1 becomes systemd from the verified root filesystem
 * runtime security assumptions apply
 
-=== 2. Why `newroot` Matters Architecturally
+=== Why `newroot` Matters Architecturally
 
 `newroot` marks the **exact point where trust boundaries change**:
 
@@ -823,7 +823,7 @@ After `switch_root` (runtime system):
 Any files, binaries, or processes that exist only in initrd
 **do not persist** past `switch_root`.
 
-=== 3. Security Implications of the Root Pivot
+=== Security Implications of the Root Pivot
 
 Because `newroot` only exposes:
 
@@ -843,7 +843,7 @@ This prevents attackers from:
 * persisting malware via initrd temporary paths
 * modifying the runtime environment outside `/data`
 
-=== 4. Relationship to dm‑verity and dm‑integrity
+=== Relationship to dm‑verity and dm‑integrity
 
 `newroot` itself does not provide cryptographic protection.
 
@@ -856,7 +856,7 @@ Instead, it **exposes the results** of earlier verification steps:
 
 `newroot` is therefore the **handoff point**, not a security mechanism.
 
-=== 5. Summary
+=== Summary
 
 * `newroot` defines the handover from initrd to the verified operating system
 * It ensures only authenticated and integrity‑protected storage is visible
@@ -864,7 +864,7 @@ Instead, it **exposes the results** of earlier verification steps:
 * It supports enforcement of Verified Boot and Authenticated Storage
 * It should be documented as an architectural boundary, not as a protection layer
 
-== Appendix D – Authenticated Encryption-at-Rest Explained
+== Appendix F – Authenticated Encryption-at-Rest Explained
 
 The resulting storage design is:
 
@@ -887,14 +887,14 @@ This provides:
 Note that **AES-GCM is not used for data encryption**, only for *key wrapping* in
 OP-TEE, which is the correct separation of responsibilities.
 
-== Appendix E – dm-integrity Behavior Under Power Loss & Tamper Conditions
+== Appendix G – dm-integrity Behavior Under Power Loss & Tamper Conditions
 
 This appendix explains how dm‑integrity behaves during unexpected power loss,
 offline tampering, and silent corruption events. It clarifies how the
 HMAC‑based integrity layer, journal, and data layout ensure authenticated,
 atomic storage for the writable `/data` partition.
 
-=== 1. How dm-integrity Writes Data (Normal Operation)
+=== How dm-integrity Writes Data (Normal Operation)
 
 For each data block, dm‑integrity maintains:
 
@@ -912,7 +912,7 @@ A write operation follows this sequence:
 
 This ensures *data and tag updates are atomic*.
 
-=== 2. Power Loss Handling (Crash Recovery)
+=== Power Loss Handling (Crash Recovery)
 
 If the system loses power during any step, dm‑integrity performs **recovery**
 on next boot:
@@ -949,7 +949,7 @@ The attacker cannot:
 * corrupt configuration to influence boot  
 * perform stealth tampering (all corruption is detected)
 
-=== 4. Combined Security Properties (dm-crypt + dm-integrity + dm-verity)
+=== Combined Security Properties (dm-crypt + dm-integrity + dm-verity)
 
 The three layers provide distinct protections:
 
@@ -994,7 +994,7 @@ The three layers provide distinct protections:
 | Runtime protection out of scope (integrity-at-rest model)
 |===
 
-=== 5. Summary
+=== Summary
 
 The combination of dm‑integrity and dm‑crypt provides:
 
@@ -1010,7 +1010,7 @@ Together with dm‑verity on the rootfs, the platform achieves:
 
 **Verified Boot + Authenticated Storage = Secure, Tamper-Resistant System**
 
-== Appendix C – Physical Attacker Scenarios
+== Appendix H – Physical Attacker Scenarios
 
 === Scenario 1: Attacker removes eMMC and inspects `/data`
 *Encrypted garbage only.*  
